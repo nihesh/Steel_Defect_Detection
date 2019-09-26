@@ -4,11 +4,10 @@
 import torch
 import numpy as np
 from torch.utils.data import Dataset
-from Args import NUM_DATASETS, TRAIN_TEST_SPLIT
+from Args import NUM_DATASETS
 import os
 import pickle
 import cv2
-import random
 
 class DatasetReader(Dataset):
 
@@ -18,33 +17,15 @@ class DatasetReader(Dataset):
 		self.files = os.listdir(root + "images/")
 		if(NUM_DATASETS != 0):
 			self.files = self.files[:NUM_DATASETS]
-		self.files.sort()
-		random.Random(0).shuffle(self.files)
-
-		split_point = int(TRAIN_TEST_SPLIT * len(self.files))
-		self.train = self.files[:split_point]
-		self.test = self.files[split_point:]
-
-		# 1 for train and 0 for test
-		self.train_mode = True
-
-	def setTrainMode(self, train_mode):
-		
-		self.train_mode = train_mode
 
 	def __len__(self):
 
-		if(self.train_mode):
-			return len(self.train)
+		if(NUM_DATASETS == 0):
+			return len(self.files)
 		else:
-			return len(self.test)
+			return NUM_DATASETS
 
 	def __getitem__(self, idx):
-
-		if(self.train_mode):
-			self.files = self.train
-		else:
-			self.files = self.test
 
 		data = cv2.imread(self.root + "images/" + self.files[idx]).astype(float)
 		file = open(self.root + "labels/" + self.files[idx] + ".dump", "rb")
