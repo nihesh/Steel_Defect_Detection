@@ -15,8 +15,8 @@ def MeanDiceCoefficient(prediction, target):
 	intersection = (prediction & target).float()
 	union = (prediction | target).float()
 
-	intersection = intersection.sum(dim = 2).sum(dim = 1)
-	union = union.sum(dim = 2).sum(dim = 1)
+	intersection = 2 * intersection.sum(dim = 2).sum(dim = 1)
+	union = prediction.float().sum(dim = 2).sum(dim = 1) + target.float().sum(dim = 2).sum(dim = 1)
 
 	iou = ((intersection + torch.tensor([EPS]).float().cuda()) / (union + torch.tensor([EPS]).float().cuda())).view(-1)
 
