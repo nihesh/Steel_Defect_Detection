@@ -37,9 +37,9 @@ class UNet(nn.Module):
 		x3 = self.conv_activation[2](x3)
 
 		x = self.deconv_layers[0](x3)
-		x = self.deconv_activation[0](x)# + x2 		# Skip connection from conv layer 1
+		x = self.deconv_activation[0](x) + x2 		# Skip connection from conv layer 1
 		x = self.deconv_layers[1](x)
-		x = self.deconv_activation[1](x)# + x1		# Skip connection from conv layer 0
+		x = self.deconv_activation[1](x) + x1		# Skip connection from conv layer 0
 		x = self.deconv_layers[2](x)
 		x = self.deconv_activation[2](x)
 
