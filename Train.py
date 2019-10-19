@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from matplotlib import pyplot as plt
-from Args import DIM, ROOT, EPOCHS, BATCH_SIZE, NUM_WORKERS, LEARNING_RATE, ALPHA, BETA, NUM_CLASSES
+from Args import DIM, ROOT, EPOCHS, BATCH_SIZE, NUM_WORKERS, LEARNING_RATE, ALPHA, BETA, NUM_CLASSES, SAVE_PATH
 from DatasetReader import DatasetReader
 from unet_model import UNet		# Change unet_model to model for my implementation of unet
 import torch.optim as optim
@@ -56,7 +56,7 @@ if(__name__ == "__main__"):
 
 			# Tversky Loss
 			loss = tversky_loss(target, output, ALPHA, BETA)
-
+			
 			# Multi class CE
 			# loss = loss_fn(output, target)
 
@@ -96,4 +96,6 @@ if(__name__ == "__main__"):
 				train_acc = train_acc / len(trainset),
 				test_acc = test_acc / len(testset)
 			))
+
+		torch.save(model.state_dict(), SAVE_PATH + "epoch_" + str(epoch) + "_DICE_" + str(train_dice / len(trainset)) + ".pth")
  
