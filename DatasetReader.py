@@ -54,7 +54,7 @@ class DatasetReader(Dataset):
 		data = torch.tensor(data).float().cuda()
 		data = data.transpose(0, 2)
 		data = data.transpose(1, 2)
-		target = torch.tensor(target).float().cuda()
+		target = torch.tensor(target).long().cuda()
 
 		return data, target
 

@@ -74,7 +74,7 @@ def DecodePixels(data):
 	global DIM
 	num_classes = len(data)
 
-	target = np.zeros([DIM[0], DIM[1], num_classes]).astype(bool)
+	target = np.zeros([DIM[0], DIM[1]]).astype(int)
 
 	for class_id in data:
 
@@ -82,7 +82,7 @@ def DecodePixels(data):
 		
 		# Set the corresponding bit if pixel set is not empty
 		if(pixel_set.shape[0]):
-			target[pixel_set[:, 0], pixel_set[:, 1], class_id] = 1
+			target[pixel_set[:, 0], pixel_set[:, 1]] = class_id + 1
 
 	return target
 

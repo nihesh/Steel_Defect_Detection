@@ -8,7 +8,7 @@ EPS = np.finfo(np.float32).tiny
 
 # Dataset parameters
 ROOT = "./dataset/"
-NUM_DATASETS = 0
+NUM_DATASETS = 100				# Use 0 here to use all the input points
 DIM = [256, 1600]					# All the images have fixed size
 TRAIN_TEST_SPLIT = 0.8
 
@@ -16,7 +16,7 @@ TRAIN_TEST_SPLIT = 0.8
 EPOCHS = 100
 BATCH_SIZE = 3
 NUM_WORKERS = 0
-LEARNING_RATE = 0.01
+LEARNING_RATE = 0.00001
 
 # Evaluation parameters
 PREDICTION_THRESHOLD = 0.5

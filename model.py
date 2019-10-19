@@ -21,11 +21,10 @@ class UNet(nn.Module):
 
 		self.deconv1 = nn.ConvTranspose2d(FEATURE_MAPS[3], FEATURE_MAPS[2], KERNEL_SIZE)
 		self.deconv2 = nn.ConvTranspose2d(FEATURE_MAPS[2], FEATURE_MAPS[1], KERNEL_SIZE)
-		self.deconv3 = nn.ConvTranspose2d(FEATURE_MAPS[1], NUM_CLASSES, KERNEL_SIZE)
-		self.sigmoid = nn.Sigmoid()
+		self.deconv3 = nn.ConvTranspose2d(FEATURE_MAPS[1], NUM_CLASSES + 1, KERNEL_SIZE)
 
 		self.deconv_layers = [self.deconv1, self.deconv2, self.deconv3]
-		self.deconv_activation = [self.leaky_relu, self.leaky_relu, self.sigmoid]
+		self.deconv_activation = [self.leaky_relu, self.leaky_relu]
 
 	def forward(self, x):
 
@@ -41,10 +40,6 @@ class UNet(nn.Module):
 		x = self.deconv_layers[1](x)
 		x = self.deconv_activation[1](x) + x1		# Skip connection from conv layer 0
 		x = self.deconv_layers[2](x)
-		x = self.deconv_activation[2](x)
-
-		x = x.transpose(1, 3)
-		x = x.transpose(1, 2)
 
 		return x
 

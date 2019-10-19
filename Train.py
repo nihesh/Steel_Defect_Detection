@@ -15,7 +15,7 @@ from Evaluation import MeanDiceCoefficient
 if(__name__ == "__main__"):
 
 	model = UNet().cuda()
-	loss_fn = nn.BCELoss()
+	loss_fn = nn.CrossEntropyLoss().cuda()
 	optimiser = optim.Adam(model.parameters(), lr = LEARNING_RATE)
 
 	trainset = DatasetReader(ROOT + "train/")
@@ -30,9 +30,10 @@ if(__name__ == "__main__"):
 		# Training phase
 		train_epoch_loss = 0
 		train_dice = 0
+		train_acc = 0
 		
 		for data, target in trainloader:
-
+			
 			batch_size = data.shape[0]
 			output = model(data)
 
@@ -43,11 +44,15 @@ if(__name__ == "__main__"):
 			optimiser.step()
 
 			train_epoch_loss += loss.item() * batch_size
-			train_dice += MeanDiceCoefficient(output, target).item() * batch_size
+			dice, accuracy = MeanDiceCoefficient(output, target)
+			train_dice += dice.item() * batch_size
+			train_acc += accuracy * batch_size
 
 		# Testing phase
 		test_epoch_loss = 0
 		test_dice = 0
+		test_acc = 0
+
 		for data, target in testloader:
 
 			batch_size = data.shape[0]
@@ -56,13 +61,18 @@ if(__name__ == "__main__"):
 			loss = loss_fn(output, target)
 
 			test_epoch_loss += loss.item() * batch_size
-			test_dice += MeanDiceCoefficient(output, target).item() * batch_size
+			dice, accuracy = MeanDiceCoefficient(output, target)
 
-		print("[ Epoch - {epoch} ] - Train Loss: {train_loss} | Train Dice: {train_dice} | Test Loss: {test_loss} | Test Dice: {test_dice}".format(
+			test_dice += dice.item() * batch_size
+			test_acc += accuracy * batch_size
+
+		print("[ Epoch - {epoch} ] - Train Loss: {train_loss} | Train Dice: {train_dice} | Train Acc: {train_acc} | Test Loss: {test_loss} | Test Dice: {test_dice} | Test Acc: {test_acc}".format(
 				epoch = epoch,
 				train_loss = train_epoch_loss / len(trainset),
 				test_loss = test_epoch_loss / len(testset),
 				train_dice = train_dice / len(trainset),
-				test_dice = test_dice / len(testset)
+				test_dice = test_dice / len(testset),
+				train_acc = train_acc / len(trainset),
+				test_acc = test_acc / len(testset)
 			))
  
