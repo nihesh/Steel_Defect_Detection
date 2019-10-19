@@ -28,8 +28,6 @@ def MeanDiceCoefficient(prediction, target):
 	target = one_hot.transpose(1, 3).transpose(2, 3)
 	target = target.byte()
 
-	print(prediction[:, 1].sum(), target[:, 1].sum())
-
 	intersection = (prediction & target).float()
 
 	intersection = 2 * intersection.sum(dim = 3).sum(dim = 2)

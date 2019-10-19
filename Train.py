@@ -5,12 +5,29 @@ import torch
 import torch.nn as nn
 import numpy as np
 from matplotlib import pyplot as plt
-from Args import DIM, ROOT, EPOCHS, BATCH_SIZE, NUM_WORKERS, LEARNING_RATE
+from Args import DIM, ROOT, EPOCHS, BATCH_SIZE, NUM_WORKERS, LEARNING_RATE, ALPHA, BETA, NUM_CLASSES
 from DatasetReader import DatasetReader
 from model import UNet
 import torch.optim as optim
+import torch.functional as F
 from copy import deepcopy
 from Evaluation import MeanDiceCoefficient
+
+def tversky_loss(true, logits, alpha, beta, eps=1e-7):
+
+	num_classes = logits.shape[1]
+	true_1_hot = torch.eye(num_classes)[true.squeeze(1)]
+	true_1_hot = true_1_hot.permute(0, 3, 1, 2).float()
+	probas = torch.softmax(logits, dim=1)
+	true_1_hot = true_1_hot.type(logits.type())
+	dims = (0,) + tuple(range(2, true.ndimension()))
+	intersection = torch.sum(probas * true_1_hot, dims)
+	fps = torch.sum(probas * (1 - true_1_hot), dims)
+	fns = torch.sum((1 - probas) * true_1_hot, dims)
+	num = intersection
+	denom = intersection + (alpha * fps) + (beta * fns)
+	tversky_loss = (num / (denom + eps)).mean()
+	return (1 - tversky_loss)
 
 if(__name__ == "__main__"):
 
@@ -37,7 +54,11 @@ if(__name__ == "__main__"):
 			batch_size = data.shape[0]
 			output = model(data)
 
-			loss = loss_fn(output, target)
+			# Tversky Loss
+			loss = tversky_loss(target, output, ALPHA, BETA)
+
+			# Multi class CE
+			# loss = loss_fn(output, target)
 
 			model.zero_grad()
 			loss.backward()
