@@ -7,7 +7,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from Args import DIM, ROOT, EPOCHS, BATCH_SIZE, NUM_WORKERS, LEARNING_RATE, ALPHA, BETA, NUM_CLASSES
 from DatasetReader import DatasetReader
-from model import UNet
+from unet_model import UNet		# Change unet_model to model for my implementation of unet
 import torch.optim as optim
 import torch.functional as F
 from copy import deepcopy
@@ -31,7 +31,7 @@ def tversky_loss(true, logits, alpha, beta, eps=1e-7):
 
 if(__name__ == "__main__"):
 
-	model = UNet().cuda()
+	model = UNet(3, NUM_CLASSES + 1).cuda()
 	loss_fn = nn.CrossEntropyLoss().cuda()
 	optimiser = optim.Adam(model.parameters(), lr = LEARNING_RATE)
 

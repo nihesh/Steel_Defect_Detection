@@ -7,7 +7,7 @@ from Args import KERNEL_SIZE, FEATURE_MAPS, NUM_CLASSES
 
 class UNet(nn.Module):
 
-	def __init__(self):
+	def __init__(self, num_channels, num_classes):
 
 		super(UNet, self).__init__()
 
