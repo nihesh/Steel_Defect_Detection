@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 from unet_parts import *
 
-SCALE = 1
+SCALE = 4
 
 class UNet(nn.Module):
     def __init__(self, n_channels, n_classes):

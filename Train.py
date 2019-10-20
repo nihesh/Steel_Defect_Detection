@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from matplotlib import pyplot as plt
-from Args import DIM, ROOT, EPOCHS, BATCH_SIZE, NUM_WORKERS, LEARNING_RATE, ALPHA, BETA, NUM_CLASSES, SAVE_PATH
+from Args import DIM, ROOT, EPOCHS, BATCH_SIZE, NUM_WORKERS, LEARNING_RATE, ALPHA, BETA, NUM_CLASSES, SAVE_PATH, LOAD_PATH
 from DatasetReader import DatasetReader
 from unet_model import UNet		# Change unet_model to model for my implementation of unet
 import torch.optim as optim
@@ -29,10 +29,26 @@ def tversky_loss(true, logits, alpha, beta, eps=1e-7):
 	tversky_loss = (num / (denom + eps)).mean()
 	return (1 - tversky_loss)
 
+def one_hot(target):
+
+	target_shape = target.shape
+	target = target.view(-1)
+	one_hot = torch.zeros([target.shape[0], NUM_CLASSES + 1]).cuda()
+	one_hot[torch.arange(target.shape[0]), target] = 1
+	one_hot = one_hot.view(target_shape[0], target_shape[1], target_shape[2], NUM_CLASSES + 1)
+	target = one_hot.transpose(1, 3).transpose(2, 3)
+
+	return target
+
 if(__name__ == "__main__"):
 
 	model = UNet(3, NUM_CLASSES + 1).cuda()
+
+	if(LOAD_PATH != ""):
+		model.load(LOAD_PATH)
+	
 	loss_fn = nn.CrossEntropyLoss().cuda()
+	BCELoss = torch.nn.BCEWithLogitsLoss()
 	optimiser = optim.Adam(model.parameters(), lr = LEARNING_RATE)
 
 	trainset = DatasetReader(ROOT + "train/")
@@ -57,6 +73,10 @@ if(__name__ == "__main__"):
 			# Tversky Loss
 			loss = tversky_loss(target, output, ALPHA, BETA)
 			
+			# BCE Loss
+			one_hot_vector = one_hot(target)
+			loss = loss + BCELoss(output, one_hot_vector)
+
 			# Multi class CE
 			# loss = loss_fn(output, target)
 
@@ -78,8 +98,16 @@ if(__name__ == "__main__"):
 
 			batch_size = data.shape[0]
 			output = model(data)
+	
+			# Tversky Loss
+			loss = tversky_loss(target, output, ALPHA, BETA)
+			
+			# BCE Loss
+			one_hot_vector = one_hot(target)
+			loss = loss + BCELoss(output, one_hot_vector)
 
-			loss = loss_fn(output, target)
+			# Multi class CE
+			# loss = loss_fn(output, target)
 
 			test_epoch_loss += loss.item() * batch_size
 			dice, accuracy = MeanDiceCoefficient(output, target)
@@ -97,5 +125,5 @@ if(__name__ == "__main__"):
 				test_acc = test_acc / len(testset)
 			))
 
-		torch.save(model.state_dict(), SAVE_PATH + "epoch_" + str(epoch) + "_DICE_" + str(train_dice / len(trainset)) + ".pth")
+		torch.save(model, SAVE_PATH + "epoch_" + str(epoch) + "_DICE_" + str(train_dice / len(trainset)) + ".pth")
  
