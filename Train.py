@@ -9,17 +9,18 @@ from Args import DIM, ROOT, EPOCHS, BATCH_SIZE, NUM_WORKERS, LEARNING_RATE, ALPH
 from DatasetReader import DatasetReader
 from unet_model import UNet		# Change unet_model to model for my implementation of unet
 import torch.optim as optim
-import torch.functional as F
+import torch.nn.functional as F
 from copy import deepcopy
 from Evaluation import MeanDiceCoefficient
 from matplotlib import pyplot as plt
+from torch.autograd import Variable
 
 class FocalLoss(nn.Module):
     def __init__(self, gamma=0, alpha=None, size_average=True):
         super(FocalLoss, self).__init__()
         self.gamma = gamma
         self.alpha = alpha
-        if isinstance(alpha,(float,int,long)): self.alpha = torch.Tensor([alpha,1-alpha])
+        if isinstance(alpha,(float,int,int)): self.alpha = torch.Tensor([alpha,1-alpha])
         if isinstance(alpha,list): self.alpha = torch.Tensor(alpha)
         self.size_average = size_average
 
@@ -28,10 +29,11 @@ class FocalLoss(nn.Module):
             input = input.view(input.size(0),input.size(1),-1)  # N,C,H,W => N,C,H*W
             input = input.transpose(1,2)    # N,C,H*W => N,H*W,C
             input = input.contiguous().view(-1,input.size(2))   # N,H*W,C => N*H*W,C
-        target = target.view(-1,1)
+        target = target.contiguous().view(-1)
+        target = target.long()
 
         logpt = F.log_softmax(input)
-        logpt = logpt.gather(1,target)
+        logpt = logpt.gather(1, target.view_as(logpt))
         logpt = logpt.view(-1)
         pt = Variable(logpt.data.exp())
 
@@ -75,9 +77,14 @@ def one_hot(target):
 if(__name__ == "__main__"):
 
 	model = UNet(3, NUM_CLASSES + 1).cuda()
+	start_epoch = 0
 
 	if(LOAD_PATH != ""):
-		model.load(LOAD_PATH)
+		model = torch.load(LOAD_PATH)
+		for i in range(1000, -1, -1):
+			if(LOAD_PATH.find("epoch_" + str(i)) != -1):
+				start_epoch = i + 1
+				break
 	
 	loss_fn = nn.CrossEntropyLoss().cuda()
 	BCELoss = torch.nn.BCEWithLogitsLoss()
@@ -96,7 +103,7 @@ if(__name__ == "__main__"):
 	train_dice_axis = []
 	test_dice_axis = []
 
-	for epoch in range(EPOCHS):
+	for epoch in range(start_epoch, EPOCHS):
 
 		epoch_axis.append(epoch + 1)
 
@@ -116,7 +123,7 @@ if(__name__ == "__main__"):
 			# BCE Loss
 			one_hot_vector = one_hot(target)
 			loss = loss + BCELoss(output, one_hot_vector)
-			loss = loss + focal(output, one_hot_vector)
+			# loss = loss + focal(output, one_hot_vector)
 
 			# Multi class CE
 			# loss = loss_fn(output, target)
@@ -146,6 +153,7 @@ if(__name__ == "__main__"):
 			# BCE Loss
 			one_hot_vector = one_hot(target)
 			loss = loss + BCELoss(output, one_hot_vector)
+			# loss = loss + focal(output, one_hot_vector)
 
 			# Multi class CE
 			# loss = loss_fn(output, target)
@@ -174,12 +182,17 @@ if(__name__ == "__main__"):
  
 	plt.clf()
 	plt.plot(epoch_axis, loss_axis)
+	plt.xlabel("Epoch")
+	plt.ylabel("Tversky + BCE Loss")
+	plt.title("Training loss curve")
 	plt.savefig("./Results/loss.jpg")
 
 	plt.clf()
-	plt.plot(epoch_axis, train_dice_axis)
-	plt.savefig("./Results/train_dice.jpg")
+	plt.plot(epoch_axis, np.asarray(train_dice_axis), label = "train_dice")
+	plt.plot(epoch_axis, np.asarray(test_dice_axis), label = "test_dice")
+	plt.legend()
+	plt.xlabel("Epoch")
+	plt.ylabel("Dice score")
+	plt.title("Model evaluation scores")
+	plt.savefig("./Results/dice.jpg")
 
-	plt.clf()
-	plt.plot(epoch_axis, test_dice_axis)
-	plt.savefig("./Results/test_dice.jpg")
