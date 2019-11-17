@@ -13,13 +13,14 @@ import torch.functional as F
 from copy import deepcopy
 from Evaluation import MeanDiceCoefficient
 from matplotlib import pyplot as plt
+from refinenet import rf101
 
 class FocalLoss(nn.Module):
     def __init__(self, gamma=0, alpha=None, size_average=True):
         super(FocalLoss, self).__init__()
         self.gamma = gamma
         self.alpha = alpha
-        if isinstance(alpha,(float,int,long)): self.alpha = torch.Tensor([alpha,1-alpha])
+        if isinstance(alpha,(float,int, long)): self.alpha = torch.Tensor([alpha,1-alpha])
         if isinstance(alpha,list): self.alpha = torch.Tensor(alpha)
         self.size_average = size_average
 
@@ -74,7 +75,8 @@ def one_hot(target):
 
 if(__name__ == "__main__"):
 
-	model = UNet(3, NUM_CLASSES + 1).cuda()
+	# model = UNet(3, NUM_CLASSES + 1).cuda()
+	model = rf101(NUM_CLASSES + 1)
 
 	if(LOAD_PATH != ""):
 		model.load(LOAD_PATH)

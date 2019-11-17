@@ -19,7 +19,7 @@ NUM_WORKERS = 0
 LEARNING_RATE = 0.001
 ALPHA = 0.5
 BETA = 0.5
-
+GAMMA = 2
 
 # Evaluation parameters
 PREDICTION_THRESHOLD = 0.5
