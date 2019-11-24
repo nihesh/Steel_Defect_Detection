@@ -8,18 +8,21 @@ EPS = np.finfo(np.float32).tiny
 
 # Dataset parameters
 ROOT = "./dataset/"
-NUM_DATASETS = 0					# Use 0 here to use all the input points
+NUM_DATASETS = 10000				# Use 0 here to use all the input points
 DIM = [256, 1600]					# All the images have fixed size
 TRAIN_TEST_SPLIT = 0.8
 
 # Training parameters
-EPOCHS = 5
-BATCH_SIZE = 5
+EPOCHS = 20
+BATCH_SIZE = 8
 NUM_WORKERS = 0
-LEARNING_RATE = 0.01
+LEARNING_RATE = 0.001
 ALPHA = 0.5
 BETA = 0.5
-GAMMA = 0
+GAMMA = 2
+FOCAL_WEIGHT = 0.02
+BCE_WEIGHT = 1
+TVERSKY_WEIGHT = 0.02
 
 # Evaluation parameters
 PREDICTION_THRESHOLD = 0.5

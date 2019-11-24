@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from matplotlib import pyplot as plt
-from Args import DIM, ROOT, EPOCHS, BATCH_SIZE, NUM_WORKERS, LEARNING_RATE, ALPHA, BETA, NUM_CLASSES, SAVE_PATH, LOAD_PATH, GAMMA
+from Args import DIM, ROOT, EPOCHS, BATCH_SIZE, NUM_WORKERS, LEARNING_RATE, ALPHA, BETA, NUM_CLASSES, SAVE_PATH, LOAD_PATH, GAMMA, FOCAL_WEIGHT, BCE_WEIGHT, TVERSKY_WEIGHT
 from DatasetReader import DatasetReader
 from unet_model import UNet		# Change unet_model to model for my implementation of unet
 import torch.optim as optim
@@ -14,14 +14,14 @@ from copy import deepcopy
 from Evaluation import MeanDiceCoefficient
 from matplotlib import pyplot as plt
 from torch.autograd import Variable
+from refinenet import rf101
 
+# reference: https://github.com/clcarwin/focal_loss_pytorch/blob/master/focalloss.py
 class FocalLoss(nn.Module):
     def __init__(self, gamma=0, alpha=None, size_average=True):
         super(FocalLoss, self).__init__()
         self.gamma = gamma
         self.alpha = alpha
-        if isinstance(alpha,(float,int,int)): self.alpha = torch.Tensor([alpha,1-alpha])
-        if isinstance(alpha,list): self.alpha = torch.Tensor(alpha)
         self.size_average = size_average
 
     def forward(self, input, target):
@@ -37,16 +37,11 @@ class FocalLoss(nn.Module):
         logpt = logpt.view(-1)
         pt = Variable(logpt.data.exp())
 
-        if self.alpha is not None:
-            if self.alpha.type()!=input.data.type():
-                self.alpha = self.alpha.type_as(input.data)
-            at = self.alpha.gather(0,target.data.view(-1))
-            logpt = logpt * Variable(at)
-
         loss = -1 * (1-pt)**self.gamma * logpt
         if self.size_average: return loss.mean()
         else: return loss.sum()
 
+# reference: https://github.com/kevinzakka/pytorch-goodies/blob/master/losses.py
 def tversky_loss(true, logits, alpha, beta, eps=1e-7):
 
 	num_classes = logits.shape[1]
@@ -76,7 +71,8 @@ def one_hot(target):
 
 if(__name__ == "__main__"):
 
-	model = UNet(3, NUM_CLASSES + 1).cuda()
+	# model = UNet(3, NUM_CLASSES + 1).cuda()
+	model = rf101(NUM_CLASSES + 1).cuda()
 	start_epoch = 0
 
 	if(LOAD_PATH != ""):
@@ -116,14 +112,13 @@ if(__name__ == "__main__"):
 			
 			batch_size = data.shape[0]
 			output = model(data)
-
 			# Tversky Loss
-			loss = tversky_loss(target, output, ALPHA, BETA)
+			loss = TVERSKY_WEIGHT * tversky_loss(target, output, ALPHA, BETA)
 			
 			# BCE Loss
 			one_hot_vector = one_hot(target)
-			loss = loss + BCELoss(output, one_hot_vector)
-			# loss = loss + focal(output, one_hot_vector)
+			loss = loss + BCE_WEIGHT * BCELoss(output, one_hot_vector)
+			loss = loss + FOCAL_WEIGHT * focal(output, one_hot_vector)
 
 			# Multi class CE
 			# loss = loss_fn(output, target)
@@ -137,6 +132,10 @@ if(__name__ == "__main__"):
 			train_dice += dice.item() * batch_size
 			train_acc += accuracy * batch_size
 
+			loss = None
+			output = None
+			one_hot_vector = None
+
 		# Testing phase
 		test_epoch_loss = 0
 		test_dice = 0
@@ -148,12 +147,12 @@ if(__name__ == "__main__"):
 			output = model(data)
 	
 			# Tversky Loss
-			loss = tversky_loss(target, output, ALPHA, BETA)
-			
+			loss = TVERSKY_WEIGHT * tversky_loss(target, output, ALPHA, BETA)
+					
 			# BCE Loss
 			one_hot_vector = one_hot(target)
-			loss = loss + BCELoss(output, one_hot_vector)
-			# loss = loss + focal(output, one_hot_vector)
+			loss = loss + BCE_WEIGHT * BCELoss(output, one_hot_vector)
+			loss = loss + FOCAL_WEIGHT * focal(output, one_hot_vector)
 
 			# Multi class CE
 			# loss = loss_fn(output, target)
@@ -163,6 +162,10 @@ if(__name__ == "__main__"):
 
 			test_dice += dice.item() * batch_size
 			test_acc += accuracy * batch_size
+
+			output = None
+			loss = None
+			one_hot_vector = None
 
 		print("[ Epoch - {epoch} ] - Train Loss: {train_loss} | Train Dice: {train_dice} | Train Acc: {train_acc} | Test Loss: {test_loss} | Test Dice: {test_dice} | Test Acc: {test_acc}".format(
 				epoch = epoch,
