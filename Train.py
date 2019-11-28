@@ -7,7 +7,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from Args import DIM, ROOT, EPOCHS, BATCH_SIZE, NUM_WORKERS, LEARNING_RATE, ALPHA, BETA, NUM_CLASSES, SAVE_PATH, LOAD_PATH, GAMMA, FOCAL_WEIGHT, BCE_WEIGHT, TVERSKY_WEIGHT
 from DatasetReader import DatasetReader
-from unet_model import UNet		# Change unet_model to model for my implementation of unet
+from unet_model import UNet		
 import torch.optim as optim
 import torch.nn.functional as F
 from copy import deepcopy
@@ -15,6 +15,7 @@ from Evaluation import MeanDiceCoefficient
 from matplotlib import pyplot as plt
 from torch.autograd import Variable
 from refinenet import rf101
+import os
 
 # reference: https://github.com/clcarwin/focal_loss_pytorch/blob/master/focalloss.py
 class FocalLoss(nn.Module):
@@ -27,8 +28,12 @@ class FocalLoss(nn.Module):
     def forward(self, input, target):
         if input.dim()>2:
             input = input.view(input.size(0),input.size(1),-1)  # N,C,H,W => N,C,H*W
+            target = target.view(target.size(0),target.size(1),-1)
             input = input.transpose(1,2)    # N,C,H*W => N,H*W,C
+            target = target.transpose(1,2)
             input = input.contiguous().view(-1,input.size(2))   # N,H*W,C => N*H*W,C
+            target = target.contiguous().view(-1, target.size(2))
+        
         target = target.contiguous().view(-1)
         target = target.long()
 
@@ -71,8 +76,8 @@ def one_hot(target):
 
 if(__name__ == "__main__"):
 
-	# model = UNet(3, NUM_CLASSES + 1).cuda()
-	model = rf101(NUM_CLASSES + 1).cuda()
+	model = UNet(3, NUM_CLASSES + 1).cuda()
+	# model = rf101(NUM_CLASSES + 1).cuda()
 	start_epoch = 0
 
 	if(LOAD_PATH != ""):
@@ -81,6 +86,9 @@ if(__name__ == "__main__"):
 			if(LOAD_PATH.find("epoch_" + str(i)) != -1):
 				start_epoch = i + 1
 				break
+
+	else:
+		os.system("rm -rf ./models/*")
 	
 	loss_fn = nn.CrossEntropyLoss().cuda()
 	BCELoss = torch.nn.BCEWithLogitsLoss()
@@ -96,8 +104,11 @@ if(__name__ == "__main__"):
 
 	epoch_axis = []
 	loss_axis = []
+	test_loss_axis = []
 	train_dice_axis = []
 	test_dice_axis = []
+	train_acc_axis = []
+	test_acc_axis = []
 
 	for epoch in range(start_epoch, EPOCHS):
 
@@ -112,16 +123,21 @@ if(__name__ == "__main__"):
 			
 			batch_size = data.shape[0]
 			output = model(data)
+
+			# PIXEL = 5
+			# print("\nOUTPUT")
+			# print(output[:, :, PIXEL, PIXEL])
+			# print("\nTARGET")
+			# print(target[:, PIXEL, PIXEL])
+			# print("--------------")
+
 			# Tversky Loss
 			loss = TVERSKY_WEIGHT * tversky_loss(target, output, ALPHA, BETA)
 			
 			# BCE Loss
 			one_hot_vector = one_hot(target)
-			loss = loss + BCE_WEIGHT * BCELoss(output, one_hot_vector)
+			loss = loss + BCE_WEIGHT * loss_fn(output, target)
 			loss = loss + FOCAL_WEIGHT * focal(output, one_hot_vector)
-
-			# Multi class CE
-			# loss = loss_fn(output, target)
 
 			model.zero_grad()
 			loss.backward()
@@ -151,11 +167,10 @@ if(__name__ == "__main__"):
 					
 			# BCE Loss
 			one_hot_vector = one_hot(target)
-			loss = loss + BCE_WEIGHT * BCELoss(output, one_hot_vector)
+			loss = loss + BCE_WEIGHT * loss_fn(output, target)
 			loss = loss + FOCAL_WEIGHT * focal(output, one_hot_vector)
 
-			# Multi class CE
-			# loss = loss_fn(output, target)
+			loss = loss_fn(output, target)
 
 			test_epoch_loss += loss.item() * batch_size
 			dice, accuracy = MeanDiceCoefficient(output, target)
@@ -178,15 +193,20 @@ if(__name__ == "__main__"):
 			))
 
 		loss_axis.append(train_epoch_loss / len(trainset))
+		test_loss_axis.append(test_epoch_loss / len(testset))
 		train_dice_axis.append(train_dice / len(trainset))
 		test_dice_axis.append(test_dice / len(testset))
+		train_acc_axis.append(train_acc / len(trainset))
+		test_acc_axis.append(test_acc / len(testset))
 
 		torch.save(model, SAVE_PATH + "epoch_" + str(epoch) + "_DICE_" + str(train_dice / len(trainset)) + ".pth")
  
 	plt.clf()
-	plt.plot(epoch_axis, loss_axis)
+	plt.plot(epoch_axis, loss_axis, label = "train_loss")
+	plt.plot(epoch_axis, test_loss_axis, label = "test_loss")
+	plt.legend()
 	plt.xlabel("Epoch")
-	plt.ylabel("Tversky + BCE Loss")
+	plt.ylabel("Tversky + Focal Loss")
 	plt.title("Training loss curve")
 	plt.savefig("./Results/loss.jpg")
 
@@ -198,4 +218,13 @@ if(__name__ == "__main__"):
 	plt.ylabel("Dice score")
 	plt.title("Model evaluation scores")
 	plt.savefig("./Results/dice.jpg")
+
+	plt.clf()
+	plt.plot(epoch_axis, np.asarray(train_acc_axis), label = "train_accuracy")
+	plt.plot(epoch_axis, np.asarray(test_acc_axis), label = "test_accuracy")
+	plt.legend()
+	plt.xlabel("Epoch")
+	plt.ylabel("Accuracy")
+	plt.title("Model accuracy scores")
+	plt.savefig("./Results/accuracy.jpg")
 

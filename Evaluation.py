@@ -2,7 +2,7 @@
 # Date	: 27 Sept, 2019
 
 import torch
-from Args import PREDICTION_THRESHOLD, EPS
+from Args import PREDICTION_THRESHOLD, EPS, NONE_THRESHOLD
 import torch.nn.functional as F
 from Args import NUM_CLASSES
 from sklearn.metrics import accuracy_score
@@ -27,6 +27,13 @@ def MeanDiceCoefficient(prediction, target):
 	one_hot = one_hot.view(target_shape[0], target_shape[1], target_shape[2], NUM_CLASSES + 1)
 	target = one_hot.transpose(1, 3).transpose(2, 3)
 	target = target.byte()
+
+	# print(prediction.sum(dim = 3).sum(dim = 2)[:, 1:].sum(dim = 1), target.sum(dim = 3).sum(dim = 2)[:, 1:].sum(dim = 1))
+
+	indices = prediction.sum(dim = 3).sum(dim = 2)[:, 1:].sum(dim = 1) <= NONE_THRESHOLD
+	prediction[indices, 1:] = 0
+	prediction[indices, 0] = 1
+
 
 	intersection = (prediction & target).float()
 
