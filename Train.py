@@ -17,7 +17,6 @@ from torch.autograd import Variable
 from refinenet import rf101
 import os
 
-# reference: https://github.com/clcarwin/focal_loss_pytorch/blob/master/focalloss.py
 class FocalLoss(nn.Module):
     def __init__(self, gamma=0, alpha=None, size_average=True):
         super(FocalLoss, self).__init__()
@@ -46,7 +45,6 @@ class FocalLoss(nn.Module):
         if self.size_average: return loss.mean()
         else: return loss.sum()
 
-# reference: https://github.com/kevinzakka/pytorch-goodies/blob/master/losses.py
 def tversky_loss(true, logits, alpha, beta, eps=1e-7):
 
 	num_classes = logits.shape[1]
@@ -76,8 +74,8 @@ def one_hot(target):
 
 if(__name__ == "__main__"):
 
-	model = UNet(3, NUM_CLASSES + 1).cuda()
-	# model = rf101(NUM_CLASSES + 1).cuda()
+	# model = UNet(3, NUM_CLASSES + 1).cuda()
+	model = rf101(NUM_CLASSES + 1).cuda()
 	start_epoch = 0
 
 	if(LOAD_PATH != ""):

@@ -7,13 +7,19 @@ from Args import ROOT
 from DatasetReader import DatasetReader
 import cv2
 import torch.nn.functional as F
+import os
 
-MODEL_PATH = "./models/epoch_14_DICE_76.32750129699707.pth"
+MODEL_PATH = "./models/"
 SAVE_PATH = "./Results/"
 MIN_DEFECTS = 1000
 HIGHLIGHT_FACTOR = 1
 
 if(__name__ == "__main__"):
+
+	files = os.listdir(MODEL_PATH)
+	files.sort()
+	print("Using file", files[-1])
+	MODEL_PATH = os.path.join(MODEL_PATH, files[-1])
 
 	model = torch.load(MODEL_PATH).cuda()
 	dataset = DatasetReader(ROOT + "train/")
