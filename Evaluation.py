@@ -1,5 +1,3 @@
-# Author: Nihesh Anderson
-# Date	: 27 Sept, 2019
 
 import torch
 from Args import PREDICTION_THRESHOLD, EPS, NONE_THRESHOLD

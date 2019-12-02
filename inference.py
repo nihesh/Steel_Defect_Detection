@@ -1,4 +1,3 @@
-# Author: Nihesh Anderson
 
 import torch
 import torch.nn as nn

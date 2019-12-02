@@ -1,5 +1,3 @@
-# Author: Nihesh Anderson
-# Date	: 25 Sept, 2019
 
 import torch
 import numpy as np

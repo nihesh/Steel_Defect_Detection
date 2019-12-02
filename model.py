@@ -1,5 +1,3 @@
-# Author : Nihesh Anderson
-# Date	 : 26 Sept, 2019
 
 import torch
 import torch.nn as nn

@@ -1,5 +1,3 @@
-# Author:	Nihesh Anderson
-# Date	:	Oct 19, 2019
 
 import torch
 from DatasetReader import DatasetReader
